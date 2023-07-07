@@ -3,18 +3,56 @@ from django.urls import reverse
 from django.http import HttpResponse
 from .models import Conta, Categoria
 from .forms import ContaForm, CategoriaForm
-from .utils import calcula_total
+from .utils import calcula_total, calcula_equilibrio_financeiro, totalPagarMes
 from django.contrib import messages
 from django.contrib.messages import constants
-# from django.db.models import Sum
+from django.db.models import Sum
+from extrato.models import Valores
+from datetime import datetime
+from contas.models import ContaPagar , ContaPaga
 
-# Create your views here.
+def dashboard(request):
+    dados = {}
+    categorias = Categoria.objects.all()
+
+    for categoria in categorias:
+        valores = Valores.objects.filter(categoria=categoria).aggregate(Sum('valor'))['valor__sum']
+        dados[categoria.categoria] =  valores if valores is not None else 0 
+
+    return render(request, 'dashboard.html', {'labels': list(dados.keys()), 'values': list(dados.values())})
+
 def home(request):
     contas = Conta.objects.all()
+    valores = Valores.objects.filter(data__month=datetime.now().month)
+    entradas = valores.filter(tipo='E')
+    saidas = valores.filter(tipo='S')
+
+    percentual_gastos_essenciais, percentual_gastos_nao_essenciais = calcula_equilibrio_financeiro()
+    categorias = Categoria.objects.all()
+    presupuesto = calcula_total(categorias, "valor_planejado")
+    total_pagar_mes = totalPagarMes()
+
+    contas_pagar = ContaPagar.objects.all()
+
+    contas_pagas = ContaPaga.objects.filter(data_pagamento__month=datetime.now().month).values('conta')
+    contas_vencidas = len(contas_pagar.filter(dia_pagamento__lt=datetime.now().day).exclude(id__in=contas_pagas))
+    contas_proximas_vencimento = len(contas_pagar.filter(dia_pagamento__lte = datetime.now().day + 5).filter(dia_pagamento__gte=datetime.now().day).exclude(id__in=contas_pagas))
+    
+    
+    
     context = {
+        "contas_proximas_vencimento":contas_proximas_vencimento,
+        "contas_vencidas":contas_vencidas,
         "contas": contas,
-        "calcula_total": calcula_total(contas, "valor")
-    }
+        "presupuesto": presupuesto,
+        "libre": presupuesto - total_pagar_mes,
+        "percentual_gastos_essenciais": int(percentual_gastos_essenciais),
+        "percentual_gastos_nao_essenciais": int(percentual_gastos_nao_essenciais),
+        "calcula_total": calcula_total(contas, "valor"),
+        "total_entradas" : calcula_total(entradas, 'valor'),
+        "total_saidas" : calcula_total(saidas, 'valor'),
+        "total_pagar_mes": total_pagar_mes,
+    }    
     return render(request,"home.html", context)
 
 def gerenciar(request):
