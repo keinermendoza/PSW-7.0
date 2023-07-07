@@ -58,6 +58,11 @@
                 <input style="width: 100%" type="submit" class="botao-principal" value="Filtrar">
                 
             </div>
+            <div class="col-md-2">
+                <a class="btn btn-secondary d-flex align-items-center justify-content-center" href="{% url 'view_extrato' %}">
+                    <strong>Eliminar Filtros</strong>
+                </a>
+            </div>
             </form>
             <div class="col-md-2">
                 <a href="{% url 'exportar_pdf' %}" class="botao-secundario">Exportar extrato</a>
@@ -68,6 +73,8 @@
                 <a class="btn btn-success d-flex align-items-center" href="{% url 'novo_valor' %}">
                     <strong>Go to Novo Valor</strong>
                 </a>
+
+                
             </div>
 
         </div>

@@ -1,0 +1,66 @@
+{% extends 'bases/base.html' %}
+{% load static %}
+{% block 'head' %}
+
+    <link href="{% static 'perfil/css/home.css' %}" rel="stylesheet">
+    <link href="{% static 'perfil/css/gerenciar.css' %}" rel="stylesheet">
+    <link href="{% static 'extrato/css/view_extrato.css' %}" rel="stylesheet">
+
+{% endblock %}
+
+{% block 'body' %}
+
+    <div class="container">
+        <br>
+        <br>
+        <p class="fonte-destaque">Definir planejamento</p>
+        <div class="card">
+        
+            <table>
+                <tr>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                    <th>Ação</th>
+                </tr>
+
+                {% for categoria in categorias %}
+                    <tr class="linha">
+                        <td>{{categoria}}</td>
+                        <td><input type="number" id="value-category-{{categoria.id}}" class="form-control" value="{{categoria.valor_planejado}}"></td>
+                        <td><button data-id="{{categoria.id}}" style="width: 100%;" class="update-category botao-secundario">Salvar</button></td>         
+                    </tr>
+                {% endfor %}
+                
+
+            </table>
+        
+        </div>
+    </div>
+
+
+<script>
+
+    document.querySelectorAll(".update-category").forEach((btn) => {
+        btn.onclick = (e) => {
+            const id = e.target.dataset.id;
+            
+            fetch("/planejamento/update_valor_categoria/", {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    novo_valor: document.querySelector(`#value-category-${id}`).value,
+                    id: id,
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log(data))
+        } 
+    });
+        
+            
+</script>
+
+
+{% endblock %}

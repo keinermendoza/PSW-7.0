@@ -4,7 +4,7 @@ from .models import Valores
 from .forms import ValoresForm
 from django.contrib.messages import constants
 from django.contrib import messages
-from datetime import datetime
+import datetime
 from django.conf import settings
 
 from django.http import FileResponse
@@ -12,6 +12,14 @@ from django.template.loader import render_to_string
 from io import BytesIO
 import os
 from weasyprint import HTML
+
+from django.utils import timezone
+from datetime import date
+from dateutil.relativedelta import relativedelta
+
+
+
+
 
 
 # Create your views here.
@@ -50,16 +58,9 @@ def novo_valor(request):
     return render(request, "novo_valor.html", context)
 
 
-#### voy por aqui
-
 def view_extrato(request): 
 
-    valores = Valores.objects.filter(data__month=datetime.now().month)
-    context = {
-        "contas": Conta.objects.all(),
-        "categorias": Categoria.objects.all(),
-        "valores": valores,
-    }
+    valores = Valores.objects.all()
 
     if conta := request.GET.get('conta'):
         valores = valores.filter(conta__id=conta)
@@ -70,21 +71,34 @@ def view_extrato(request):
     if periodo := request.GET.get('periodo'):
         match periodo:
             case "7-dias":
-                print(periodo)
+                time_limit = timezone.now() - datetime.timedelta(days=7) # mostra registros em datas futuras
+                valores = valores.filter(data__gte=time_limit)
+
             case "15-dias":
-                print(periodo)
+                time_limit = timezone.now() - datetime.timedelta(days=15) # mostra registros em datas futuras
+                valores = valores.filter(data__gte=time_limit)
+
             case "mes":
-                print(periodo)
+                valores = valores.filter(data__month=timezone.now().month)
+
             case "3-mes":
-                print(periodo)
+                time_limit = timezone.now() - relativedelta(months=3) # mostra registros em datas futuras
+                valores = valores.filter(data__gte=time_limit.replace(day=1))
+
             case "ano":
-                print(periodo)
-        
+                valores = valores.filter(data__month=timezone.now().year)
+
+    context = {
+        "contas": Conta.objects.all(),
+        "categorias": Categoria.objects.all(),
+        "valores": valores,
+    }
+    
     return render(request, 'view_extrato.html', context)
 
 def exportar_pdf(request):
     context = {
-        "valores" : Valores.objects.filter(data__month=datetime.now().month),
+        "valores" : Valores.objects.filter(data__month=timezone.now().month),
         "contas" : Conta.objects.all(),
         "categorias" : Categoria.objects.all()
     }
